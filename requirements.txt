@@ -3,3 +3,4 @@ pydantic
 google-generativeai
 python-dotenv
 beautifulsoup4
+google-generativeai
