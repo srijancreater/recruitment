@@ -4,6 +4,7 @@ import pandas as pd
 
 st.set_page_config(page_title="AI Recruitment Agent System", layout="wide")
 
+# Custom CSS for a professional look
 st.markdown("""
     <style>
     .agent-box { padding: 20px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 20px; background-color: #f9f9f9; }
@@ -26,13 +27,13 @@ jd_input = st.sidebar.text_area(
     height=200
 )
 
-# NEW: SOURCE SELECTION
+# SOURCE SELECTION
 source_option = st.sidebar.selectbox(
     "Candidate Source",
     ("Web Scraping (AI Search)", "Manual Upload (CSV)", "Internal Mock Database")
 )
 
-# NEW: CSV Upload
+# CSV Upload
 uploaded_file = None
 if source_option == "Manual Upload (CSV)":
     uploaded_file = st.sidebar.file_uploader("Upload Candidates CSV", type=["csv"])
@@ -114,3 +115,5 @@ if 'pipeline_results' in st.session_state and st.session_state.pipeline_results:
     if res['proposals']:
         for p in res['proposals']:
             st.text_area("Proposal Package", p, height=200)
+    else:
+        st.error("No candidates were successfully negotiated for submittal.")
