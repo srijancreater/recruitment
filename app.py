@@ -4,7 +4,6 @@ import pandas as pd
 
 st.set_page_config(page_title="AI Recruitment Agent System", layout="wide")
 
-# Custom CSS for a professional look
 st.markdown("""
     <style>
     .agent-box { padding: 20px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 20px; background-color: #f9f9f9; }
@@ -27,39 +26,32 @@ jd_input = st.sidebar.text_area(
     height=200
 )
 
-# SOURCE SELECTION
 source_option = st.sidebar.selectbox(
     "Candidate Source",
     ("Web Scraping (AI Search)", "Manual Upload (CSV)", "Internal Mock Database")
 )
 
-# CSV Upload
 uploaded_file = None
 if source_option == "Manual Upload (CSV)":
     uploaded_file = st.sidebar.file_uploader("Upload Candidates CSV", type=["csv"])
 
 if st.sidebar.button("🚀 Execute Pipeline"):
     with st.status("Agent Coordination in Progress...", expanded=True) as status:
-        # Agent 1: Extraction
         st.write("🤖 **Agent 1: Extracting Requirements...**")
         reqs = st.session_state.rec_sys.agent_extract_requirements(jd_input)
         st.session_state.pipeline_results['reqs'] = reqs
         st.markdown(f"✅ **Extracted:** Skills: `{reqs.skills}`, Exp: `{reqs.min_experience}+ yrs`")
 
-        # Agent 2: Boolean Generation
         st.write("🤖 **Agent 2: Generating Sourcing Strings...**")
         bool_str = st.session_state.rec_sys.agent_generate_booleans(reqs)
         st.session_state.pipeline_results['boolean'] = bool_str
         st.markdown(f"✅ **Boolean String:** `{bool_str}`")
 
-        # --- SOURCE GATHERING ---
         st.write("🤖 **Agent 2.5: Gathering Candidates...**")
         candidates_to_process = []
-        
         if source_option == "Web Scraping (AI Search)":
             candidates_to_process = st.session_state.rec_sys.scraper.search_candidates(bool_str)
             st.write(f"🌐 Scraped {len(candidates_to_process)} candidates from the web.")
-        
         elif source_option == "Manual Upload (CSV)":
             if uploaded_file:
                 df = pd.read_csv(uploaded_file)
@@ -67,15 +59,13 @@ if st.sidebar.button("🚀 Execute Pipeline"):
                 st.write(f"📁 Processed {len(candidates_to_process)} candidates from CSV.")
             else:
                 st.error("Please upload a CSV file!")
-        
-        else: # Internal Mock
+        else:
             candidates_to_process = [
                 {"name": "Alice Smith", "email": "alice@example.com", "phone": "123-456", "resume_text": "Expert in Python, FastAPI, React, and AWS with 10 years exp.", "experience": 10, "visa_status": "US Citizen", "budget": 120000},
                 {"name": "Bob Jones", "email": "bob@example.com", "phone": "789-012", "resume_text": "Senior Python Developer with 7 years exp. Proficient in FastAPI.", "experience": 7, "visa_status": "Green Card", "budget": 130000},
             ]
             st.write(f"📦 Loaded {len(candidates_to_process)} internal candidates.")
 
-        # Agent 3: Filtering & Scoring
         st.write("🤖 **Agent 3: Filtering & Scoring...**")
         filtered = st.session_state.rec_sys.agent_filter_and_score(candidates_to_process)
         st.session_state.pipeline_results['filtered'] = filtered
@@ -84,19 +74,16 @@ if st.sidebar.button("🚀 Execute Pipeline"):
         else:
             st.warning("No candidates passed the filters.")
 
-        # Agent 4: Negotiation
         st.write("🤖 **Agent 4: Outreach & Negotiation...**")
         confirmed = st.session_state.rec_sys.agent_outreach_negotiate(filtered)
         st.session_state.pipeline_results['confirmed'] = confirmed
         
-        # Agent 5: Submittal
         st.write("🤖 **Agent 5: Preparing Final Submittals...**")
         proposals = st.session_state.rec_sys.agent_submit_proposal(confirmed)
         st.session_state.pipeline_results['proposals'] = proposals
         
         status.update(label="Pipeline Execution Complete!", state="complete", expanded=False)
 
-# --- Results Display ---
 if 'pipeline_results' in st.session_state and st.session_state.pipeline_results:
     res = st.session_state.pipeline_results
     col1, col2 = st.columns(2)

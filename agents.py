@@ -18,8 +18,9 @@ if not api_key:
 
 genai.configure(api_key=api_key if api_key else "placeholder")
 
+# Updated to the most stable and widely available model name
 model = genai.GenerativeModel(
-    model_name='gemini-pro',
+    model_name='gemini-1.5-flash', 
     safety_settings={
         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
@@ -84,12 +85,11 @@ class RecruitmentSystem:
         if not self.requirements: raise ValueError("Requirements must be extracted first.")
 
         for data in candidates_data:
-            # RELAXED FILTERS for Demo Purpose: ensure candidates actually pass
             if data['visa_status'] not in self.requirements.visa_allowed and data['visa_status'] != "Unknown":
                 continue
-            if data['experience'] < (self.requirements.min_experience - 2): # Allow some leeway
+            if data['experience'] < (self.requirements.min_experience - 2):
                 continue
-            if data['budget'] > self.requirements.max_budget * 1.5: # Allow 50% buffer
+            if data['budget'] > self.requirements.max_budget * 1.5:
                 continue
             
             prompt = f"Compare the following Resume against the Job Requirements.\n\nRequirements: {self.requirements.json()}\nResume: {data['resume_text']}\n\nProvide a match score from 0.0 to 1.0. Return ONLY a JSON object: {{\"score\": 0.85, \"reasoning\": \"...\"}}"
@@ -108,14 +108,13 @@ class RecruitmentSystem:
         print("[Agent 4] Executing Real-World Outreach Flow...")
         confirmed = []
         for cand in ranked_candidates:
-            # Lower the negotiation bar for the demo
             if cand.score > 0.4: 
                 cand.status = "Negotiated"
                 confirmed.append(cand)
         return confirmed
 
     def agent_submit_proposal(self, confirmed_candidates: List[Candidate]):
-        print("[Agent 5] Preparing Client Proposals...")
+        print("[Agent, 5] Preparing Client Proposals...")
         submittals = []
         for cand in confirmed_candidates:
             proposal = f"OFFICIAL SUBMITTAL: {cand.name}\nScore: {cand.score}\nBudget: {self.requirements.max_budget}"
