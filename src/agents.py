@@ -14,13 +14,17 @@ load_dotenv()
 # Initialize Gemini API
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
-    raise ValueError("GEMINI_API_KEY not found in environment variables")
+    # Fallback for Streamlit Secrets if .env is not present
+    api_key = os.environ.get("GEMINI_API_KEY")
 
-genai.configure(api_key=api_key)
+if not api_key:
+    print("WARNING: GEMINI_API_KEY not found!")
 
-# Use a highly compatible model and disable safety filters
+genai.configure(api_key=api_key if api_key else "placeholder")
+
+# Using 'gemini-pro' as it is the most universally available stable model name
 model = genai.GenerativeModel(
-    model_name='gemini-1.5-flash',
+    model_name='gemini-pro',
     safety_settings={
         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
@@ -55,7 +59,6 @@ class RecruitmentSystem:
         self.requirements: Optional[Requirement] = None
         self.scraper = RecruitmentScraper()
 
-    # --- Agent 1: Requirement Grabber ---
     def agent_extract_requirements(self, jd_text: str) -> Requirement:
         print("[Agent 1] Gemini is analyzing Job Description...")
         prompt = f"Analyze the following Job Description and extract the requirements in a strict JSON format.\nJD: {jd_text}\n\nReturn ONLY a JSON object with these keys:\n- skills: (list of essential technical skills)\n- min_experience: (integer, minimum years of experience)\n- max_budget: (float, maximum annual budget/salary)\n- location: (string, primary location or 'Remote')"
@@ -70,7 +73,6 @@ class RecruitmentSystem:
             self.requirements = Requirement(skills=["Python"], min_experience=3, max_budget=100000)
             return self.requirements
 
-    # --- Agent 2: Boolean String Generator ---
     def agent_generate_booleans(self, req: Requirement) -> str:
         print("[Agent 2] Generating AI-optimized Boolean strings...")
         if not req.skills: return "Developer AND (Remote OR \"United States\")"
@@ -81,7 +83,6 @@ class RecruitmentSystem:
         except:
             return f"(\" {req.skills[0]} \") AND (Remote OR \"USA\")"
 
-    # --- Agent 3: Filter & Score (Now handles Scraped Data) ---
     def agent_filter_and_score(self, candidates_data: List[Dict]) -> List[Candidate]:
         print("[Agent 3] Filtering and scoring scraped candidates...")
         scored_candidates = []
@@ -92,7 +93,7 @@ class RecruitmentSystem:
             if data['experience'] < self.requirements.min_experience: continue
             if data['budget'] > self.requirements.max_budget * 1.2: continue
             
-            prompt = f"Compare the following Resume against the Job Requirements.\n\nRequirements: {self.requirements.json()}\nResume: {data['resume_text']}\n\nProvide a match score from 0.0 to 1.0. Return ONLY a JSON object: {{"score": 0.85, \"reasoning\": \"...\"}}"
+            prompt = f"Compare the following Resume against the Job Requirements.\n\nRequirements: {self.requirements.json()}\nResume: {data['resume_text']}\n\nProvide a match score from 0.0 to 1.0. Return ONLY a JSON object: {{\"score\": 0.85, \"reasoning\": \"...\"}}"
             try:
                 response = model.generate_content(prompt)
                 text = response.text.replace('```json', '').replace('```', '').strip()
@@ -104,7 +105,6 @@ class RecruitmentSystem:
                 scored_candidates.append(candidate)
         return sorted(scored_candidates, key=lambda x: x.score, reverse=True)
 
-    # --- Agent 4: Outreach & Negotiation ---
     def agent_outreach_negotiate(self, ranked_candidates: List[Candidate]) -> List[Candidate]:
         print("[Agent 4] Executing Real-World Outreach Flow...")
         confirmed = []
@@ -114,7 +114,6 @@ class RecruitmentSystem:
                 confirmed.append(cand)
         return confirmed
 
-    # --- Agent 5: Submittal ---
     def agent_submit_proposal(self, confirmed_candidates: List[Candidate]):
         print("[Agent 5] Preparing Client Proposals...")
         submittals = []
