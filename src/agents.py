@@ -3,14 +3,16 @@ import json
 import re
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
-from openai import OpenAI
+import google.generativeai as genai
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
-# Initialize OpenAI Client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Initialize Gemini API
+# Make sure you add GEMINI_API_KEY to your Streamlit secrets
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # --- Data Models ---
 
@@ -37,9 +39,9 @@ class RecruitmentSystem:
     def __init__(self):
         self.requirements: Optional[Requirement] = None
 
-    # --- Agent 1: Requirement Grabber (GPT-4o Powered) ---
+    # --- Agent 1: Requirement Grabber (Gemini Powered) ---
     def agent_extract_requirements(self, jd_text: str) -> Requirement:
-        print("[Agent 1] AI is analyzing Job Description...")
+        print("[Agent 1] Gemini is analyzing Job Description...")
         
         prompt = f"""
         Analyze the following Job Description and extract the requirements in a strict JSON format.
@@ -52,33 +54,26 @@ class RecruitmentSystem:
         - location: (string, primary location or 'Remote')
         """
         
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "system", "content": "You are a professional recruitment analyst. Output strict JSON."},
-                      {"role": "user", "content": prompt}],
-            response_format={"type": "json_object"}
-        )
+        response = model.generate_content(prompt)
+        # Clean the response text in case Gemini adds markdown backticks (```json ...)
+        text = response.text.replace('```json', '').replace('```', '').strip()
         
-        data = json.loads(response.choices[0].message.content)
+        data = json.loads(text)
         self.requirements = Requirement(**data)
         return self.requirements
 
-    # --- Agent 2: Boolean String Generator (AI Optimized) ---
+    # --- Agent 2: Boolean String Generator (Gemini Optimized) ---
     def agent_generate_booleans(self, req: Requirement) -> str:
         print("[Agent 2] Generating AI-optimized Boolean strings...")
         if not req.skills:
             return "Developer AND (Remote OR \"United States\")"
         
-        # We use GPT to create a high-converting Boolean string
         prompt = f"Create a professional LinkedIn Boolean search string for a candidate with these skills: {req.skills}. Location: {req.location}. Only return the string."
         
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return response.choices[0].message.content.strip()
+        response = model.generate_content(prompt)
+        return response.text.strip()
 
-    # --- Agent 3: Filter, Compare & Score (Deep AI Analysis) ---
+    # --- Agent 3: Filter, Compare & Score (Gemini Deep Analysis) ---
     def agent_filter_and_score(self, candidates_data: List[Dict]) -> List[Candidate]:
         print("[Agent 3] Performing Deep AI Scoring (JD vs Resume)...")
         scored_candidates = []
@@ -95,7 +90,7 @@ class RecruitmentSystem:
             if data['budget'] > self.requirements.max_budget * 1.2:
                 continue
                 
-            # AI SCORING: We send the resume and JD to GPT-4o to get a real professional score
+            # AI SCORING
             prompt = f"""
             Compare the following Resume against the Job Requirements.
             
@@ -103,35 +98,26 @@ class RecruitmentSystem:
             Resume: {data['resume_text']}
             
             Provide a match score from 0.0 to 1.0 based on technical fit and experience.
-            Return ONLY a JSON object: {{"score": 0.85, "reasoning": "Strong AWS experience but missing React"}}
+            Return ONLY a JSON object: {{"score": 0.85, "reasoning": "Detailed reason"}}
             """
             
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "system", "content": "You are an expert technical recruiter."},
-                          {"role": "user", "content": prompt}],
-                response_format={"type": "json_object"}
-            )
+            response = model.generate_content(prompt)
+            text = response.text.replace('```json', '').replace('```', '').strip()
+            score_data = json.loads(text)
             
-            score_data = json.loads(response.choices[0].message.content)
             candidate = Candidate(**data, score=score_data['score'])
             scored_candidates.append(candidate)
             
         return sorted(scored_candidates, key=lambda x: x.score, reverse=True)
 
-    # --- Agent 4: Outreach & Negotiation (Simulated Real-World) ---
+    # --- Agent 4: Outreach & Negotiation ---
     def agent_outreach_negotiate(self, ranked_candidates: List[Candidate]) -> List[Candidate]:
         print("[Agent 4] Executing Real-World Outreach Flow...")
         confirmed = []
-        
         for cand in ranked_candidates:
-            print(f"Processing {cand.name} (Score: {cand.score})...")
-            # Simulation of the Email -> Text -> Call sequence
-            # In Phase 2, these will be Twilio/SendGrid API calls
             if cand.score > 0.7:
                 cand.status = "Negotiated"
                 confirmed.append(cand)
-                
         return confirmed
 
     # --- Agent 5: Submittal ---
