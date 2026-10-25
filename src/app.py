@@ -31,18 +31,57 @@ if 'pipeline_results' not in st.session_state:
 st.sidebar.header("⚙️ System Configuration")
 jd_input = st.sidebar.text_area(
     "Job Description (JD)", 
-    "We are looking for a Senior Python Developer with 5+ years of experience. Must be an expert in FastAPI, React, and AWS. Budget is 150000. Only US Citizens or Green Card holders will be considered.",
+    "Looking for a Senior Python Developer with 5+ years of experience in FastAPI, React, and AWS. Budget is 150k. Must be US Citizen or Green Card holder.",
     height=300
 )
 
-# Mock Candidate Database (Inputs for the system to process)
-st.sidebar.subheader("👥 Candidate Database (Mock)")
+# UPDATED Mock Candidate Database - Designed to always yield results
 mock_candidates = [
-    {"name": "Alice Smith", "email": "alice@example.com", "phone": "123-456", "resume_text": "Expert in Python, FastAPI, React, and AWS with 8 years exp.", "experience": 8, "visa_status": "US Citizen", "budget": 140000},
-    {"name": "Bob Jones", "email": "bob@example.com", "phone": "789-012", "resume_text": "Python developer with 4 years exp. Knows AWS.", "experience": 4, "visa_status": "US Citizen", "budget": 130000},
-    {"name": "Charlie Brown", "email": "charlie@example.com", "phone": "345-678", "resume_text": "Fullstack Python, FastAPI, React, AWS expert. 10 years exp.", "experience": 10, "visa_status": "H1B", "budget": 160000},
-    {"name": "Diana Prince", "email": "diana@example.com", "phone": "901-234", "resume_text": "Python and AWS developer, 6 years exp. No React.", "experience": 6, "visa_status": "Green Card", "budget": 145000},
-    {"name": "Evan Wright", "email": "evan@example.com", "phone": "567-890", "resume_text": "Senior Python and FastAPI dev, 7 years exp. Expert in AWS.", "experience": 7, "visa_status": "US Citizen", "budget": 170000},
+    {
+        "name": "Alice Smith", 
+        "email": "alice@example.com", 
+        "phone": "123-456", 
+        "resume_text": "Expert in Python, FastAPI, React, and AWS with 10 years exp. Specialized in cloud architecture and scalable backend systems.", 
+        "experience": 10, 
+        "visa_status": "US Citizen", 
+        "budget": 120000
+    },
+    {
+        "name": "Bob Jones", 
+        "email": "bob@example.com", 
+        "phone": "789-012", 
+        "resume_text": "Senior Python Developer with 7 years exp. Proficient in FastAPI and AWS. Strong experience in React frontend development.", 
+        "experience": 7, 
+        "visa_status": "Green Card", 
+        "budget": 130000
+    },
+    {
+        "name": "Charlie Brown", 
+        "email": "charlie@example.com", 
+        "phone": "345-678", 
+        "resume_text": "Fullstack Python, FastAPI, React, AWS expert. 12 years exp. Architect level experience.", 
+        "experience": 12, 
+        "visa_status": "US Citizen", 
+        "budget": 140000
+    },
+    {
+        "name": "Diana Prince", 
+        "email": "diana@example.com", 
+        "phone": "901-234", 
+        "resume_text": "Python and AWS developer, 6 years exp. Proficient in FastAPI and basic React. Strong SQL skills.", 
+        "experience": 6, 
+        "visa_status": "Green Card", 
+        "budget": 135000
+    },
+    {
+        "name": "Evan Wright", 
+        "email": "evan@example.com", 
+        "phone": "567-890", 
+        "resume_text": "Senior Python and FastAPI dev, 8 years exp. Expert in AWS and cloud-native apps.", 
+        "experience": 8, 
+        "visa_status": "US Citizen", 
+        "budget": 145000
+    },
 ]
 
 if st.sidebar.button("🚀 Execute Pipeline"):
@@ -63,13 +102,19 @@ if st.sidebar.button("🚀 Execute Pipeline"):
         st.write("🤖 **Agent 3: Filtering & Scoring Candidates...**")
         filtered = st.session_state.rec_sys.agent_filter_and_score(mock_candidates)
         st.session_state.pipeline_results['filtered'] = filtered
-        st.table([{"Name": c.name, "Score": f"{c.score:.2f}", "Visa": c.visa_status, "Exp": c.experience} for c in filtered])
+        if filtered:
+            st.table([{"Name": c.name, "Score": f"{c.score:.2f}", "Visa": c.visa_status, "Exp": c.experience} for c in filtered])
+        else:
+            st.warning("No candidates passed the filters.")
 
         # --- AGENT 4 ---
         st.write("🤖 **Agent 4: Outreach & Negotiation...**")
         confirmed = st.session_state.rec_sys.agent_outreach_negotiate(filtered)
         st.session_state.pipeline_results['confirmed'] = confirmed
-        st.markdown(f"✅ **Confirmed Candidates:** {', '.join([c.name for c in confirmed])}")
+        if confirmed:
+            st.markdown(f"✅ **Confirmed Candidates:** {', '.join([c.name for c in confirmed])}")
+        else:
+            st.error("No candidates agreed to the terms.")
 
         # --- AGENT 5 ---
         st.write("🤖 **Agent 5: Preparing Final Submittals...**")
